@@ -27,7 +27,8 @@ import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import pedro.ieslaencanta.com.dawsnake.Clock;
 import pedro.ieslaencanta.com.dawsnake.IWarnClock;
-
+import pedro.ieslaencanta.com.dawsnake.game.snake.Food;
+import pedro.ieslaencanta.com.dawsnake.game.snake.Powerup;
 
 ;
 
@@ -39,18 +40,22 @@ public class Game implements IWarnClock {
 
     //0 delante, 1 detras,2 arriba, 3 abajo, 4 disparo
     //private boolean[] keys_presed;
-    public static Clock clock = new Clock(2.0f);
+    public static Clock clock = new Clock(7.0f);
     private GraphicsContext ctx;
     private Size board_size;
     private Size cell_size;
     private Size boardcells_size;
     private int rows;
     private int cols;
+    private int poweruptime;
+    private int poweruprespawntime;
     private GraphicsContext ctxbg;
     private boolean debug = false;
     private boolean ispaintendbackground = false;
     private Snake snake;
-    
+    private Food comida;
+    private Powerup objetopowerup;
+
     protected MediaPlayer player;
     //protected Image img;
     private Font font = new Font("8BIT WONDER Nominal", 18);
@@ -61,7 +66,6 @@ public class Game implements IWarnClock {
         STOP
     }
     private GameState state;
-   
 
     /**
      *
@@ -81,10 +85,13 @@ public class Game implements IWarnClock {
         this.cols = this.board_size.getWidth() / this.cell_size.getWidth();
         this.boardcells_size = new Size(this.cols, this.rows);
         //this.img = new Image(getClass().getResourceAsStream("/images.png"));
-
+        this.poweruptime = 0;
+        this.poweruprespawntime = 0;
         this.snake = new Snake();
         this.snake.setPart_size(this.cell_size);
         this.state = GameState.START;
+        this.comida = new Food(new Coordenada((int) (Math.random() * rows), (int) (Math.random() * cols)), cell_size, Color.CYAN);
+        this.objetopowerup = new Powerup(new Coordenada((int) (Math.random() * rows), (int) (Math.random() * cols)), cell_size, Color.CYAN);
         this.initSound();
         this.ctx.setFont(font);
         this.ctxbg.setFont(font);
@@ -103,30 +110,63 @@ public class Game implements IWarnClock {
         this.state = GameState.STOP;
         this.clock.stop();
         this.player.stop();
-       
+        this.EliminarCola();
+    }
 
+    public void EliminarCola() {
+        this.snake.EliminarCola();
     }
 
     public void OnKeyPress(KeyCode code) {
         if (this.state == GameState.START) {
-          
-           switch(code){
-               case UP:
-                   this.snake.setDirection(Direction.UP);
-                   break;
-              case DOWN:
-                   this.snake.setDirection(Direction.DOWN);
-                   break;
-               case LEFT:
-                   this.snake.setDirection(Direction.LEFT);
-                   break;
-               case RIGHT:
-                   this.snake.setDirection(Direction.RIGHT);
-                   break;
-           }
+
+            switch (code) {
+                case UP -> {
+                    if (this.snake.getDirection() == Direction.DOWN
+                            && this.snake.getHead().getNext() != null) {
+
+                    } else {
+                        this.snake.setDirection(Direction.UP);
+                    }
+                }
+                case DOWN -> {
+                    if (this.snake.getDirection() == Direction.UP
+                            && this.snake.getHead().getNext() != null) {
+
+                    } else {
+                        this.snake.setDirection(Direction.DOWN);
+                    }
+                }
+                case LEFT -> {
+                    if (this.snake.getDirection() == Direction.RIGHT
+                            && this.snake.getHead().getNext() != null) {
+                    } else {
+                        this.snake.setDirection(Direction.LEFT);
+
+                    }
+                }
+                case RIGHT -> {
+                    if (this.snake.getDirection() == Direction.LEFT
+                            && this.snake.getHead().getNext() != null) {
+
+                    } else {
+                        this.snake.setDirection(Direction.RIGHT);
+                    }
+                }
+                case A -> {
+                    System.out.println("Implementar para crecer");
+                    this.snake.addpart();
+                }
+                case T -> {
+                    System.out.println("Intento Powerup");
+                    this.snake.setConpowerup(true);
+                }
+            }
         }
         if (this.state == GameState.STOP) {
             if (code == KeyCode.SPACE) {
+                this.snake.getHead().getSnakepart().setPosicion(new Coordenada(10, 10));
+                this.snake.setState(Snake.State.OK);
                 this.start();
             }
         }
@@ -149,7 +189,7 @@ public class Game implements IWarnClock {
     public void setDebug(boolean debug) {
         this.debug = debug;
     }
-    
+
     private void initSound() {
         if (this.player == null) {
             this.player = new MediaPlayer(new Media(getClass().getResource("/music.mp3").toString()));
@@ -163,29 +203,99 @@ public class Game implements IWarnClock {
         });
         player.play();
     }
+
+    public void inc() {
+        this.poweruptime++;
+        if (this.poweruptime >= 30) {
+            System.out.println("Desactivo powerup");
+            this.poweruptime = 0;
+            this.snake.setConpowerup(false);
+        }
+    }
+
+    public void respawnPowerupclock() {
+        this.poweruprespawntime++;
+        System.out.println("Entro al clock");
+        if (this.poweruprespawntime >= 65) {
+            System.out.println("Respawneo powerup");
+            this.poweruprespawntime = 0;
+            this.RespawnPowerup();
+        }
+    }
+
     /**
-     * cada vez que se produce un evento de reloj (marca la frecuencia, se ejecuta el código
+     * cada vez que se produce un evento de reloj (marca la frecuencia, se
+     * ejecuta el código
      */
     @Override
     public synchronized void TicTac() {
         Snake.State resultado;
         this.draw(ctx);
+        //System.out.println(objetopowerup);
+        if (this.objetopowerup != null) {
+            this.DetectarColisionPowerup();
+            
+        }else{
+            System.out.println("Detecto y llamo al clock");
+            this.respawnPowerupclock();
+        }
+
+        if (this.snake.isConpowerup()) {
+            this.snake.Powerup();
+            System.out.println("PowerupActivo");
+            this.inc();
+        }
         resultado = this.snake.move(this.boardcells_size);
-    
-       //TODO
+        if (resultado == Snake.State.OK) {
+            //Estamos vivos, estamos bien 
+            this.DetectarColisionComida();
+            if (this.snake.DetectarColisionBordes(cell_size) == Snake.State.COLISION
+                    || this.snake.DetectarColisionSerpiente(cell_size) == Snake.State.COLISION) {
+                this.stop();
+            }
+        } else if (resultado == Snake.State.COLISION) {
+            this.stop();
+        }
+        //TODO
     }
-  
+
+    public void DetectarColisionComida() {
+        if (this.snake.getHead().getSnakepart().getPosicion().compareTo(this.comida.getPosicion()) == 0) {
+            this.comida = null;
+            this.snake.addpart();
+            this.score++;
+            this.comida = new Food(new Coordenada((int) (Math.random() * rows), (int) (Math.random() * cols)), cell_size, Color.CYAN);
+        }
+    }
+
+    public void DetectarColisionPowerup() {
+        if (this.snake.getHead().getSnakepart().getPosicion().compareTo(this.objetopowerup.getPosicion()) == 0) {
+            this.objetopowerup = null;
+            this.snake.setConpowerup(true);
+            
+        }
+    }
+
+    public void RespawnPowerup() {
+        System.out.println("Genero uno nuevo");
+        this.objetopowerup = new Powerup(new Coordenada((int) (Math.random() * rows), (int) (Math.random() * cols)), cell_size, Color.CYAN);
+    }
+
+    /*private void paintbackground(GraphicsContext gc){
+        gc.
+    }*/
     /**
      * para la depuración
-     * @param gc 
+     *
+     * @param gc
      */
     private void debug(GraphicsContext gc) {
         if (!this.ispaintendbackground) {
             gc.clearRect(0, 0, this.board_size.getWidth(), this.board_size.getHeight());
             gc.setFill(Color.GRAY);
             gc.fillRect(0, 0, this.board_size.getWidth(), this.board_size.getHeight());
-            gc.setFill(Color.BROWN);
-            gc.setStroke(Color.BROWN);
+            gc.setFill(Color.GREEN);
+            gc.setStroke(Color.GREEN);
             for (int i = 0; i < this.rows; i++) {
                 gc.moveTo(0, i * this.cell_size.getHeight());
                 gc.lineTo(this.board_size.getWidth(), i * this.cell_size.getHeight());
@@ -211,9 +321,13 @@ public class Game implements IWarnClock {
                 this.debug(this.ctxbg);
             }
             this.snake.draw(gc);
+            this.comida.draw(gc);
+            if (this.objetopowerup != null) {
+                this.objetopowerup.draw(gc);
+
+            }
             gc.strokeText("SCORE " + this.score, this.board_size.getWidth() / 2 - 50, 50);
             gc.fillText("SCORE " + this.score, this.board_size.getWidth() / 2 - 50, 50);
-            
         }
         if (this.state == GameState.STOP) {
             gc.strokeText("Pulsar espacio para reiniciar", 10, this.board_size.getHeight() / 2 - 20);

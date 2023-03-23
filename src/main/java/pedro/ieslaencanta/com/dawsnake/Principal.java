@@ -19,6 +19,7 @@ import javafx.application.Platform;
 import javafx.event.EventHandler;
 import javafx.scene.Scene;
 import javafx.scene.canvas.Canvas;
+import javafx.scene.image.Image;
 import javafx.scene.layout.StackPane;
 import javafx.scene.text.Font;
 import javafx.stage.Stage;
@@ -39,16 +40,23 @@ public class Principal extends Application {
     private Canvas bg_canvas;
     private int width = 480;
     private int height = 480;
+    private Image icono;
+    private String pathicono = "serpiente.png";
 
     @Override
     public void start(Stage stage) throws Exception {
+        ClassLoader classLoader = getClass().getClassLoader();
+        this.icono = new Image(classLoader.getResource(this.pathicono).toString());
         this.canvas = new Canvas(this.width, this.height);
         this.bg_canvas= new Canvas(this.width,this.height);
         StackPane panel = new StackPane(this.bg_canvas,this.canvas);
         this.scene = new Scene(panel, this.width, this.height);
 
-        stage.setTitle("DAW Snake");
+        stage.setTitle("DAW Snake - Mateo");
         stage.setResizable(false);
+        stage.getIcons().add(icono);
+
+        /*<a href="https://www.flaticon.es/iconos-gratis/serpiente" title="serpiente iconos">Serpiente iconos creados por Freepik - Flaticon</a>*/
         stage.setScene(scene);
         //para que cierre al pulsar el icono
         stage.setOnCloseRequest(new EventHandler<WindowEvent>() {
@@ -85,7 +93,7 @@ public class Principal extends Application {
            
             this.game= new Game(this.canvas.getGraphicsContext2D(),
                     this.bg_canvas.getGraphicsContext2D(), 
-                    new Size(this.width,this.height),new Size(this.width/10,this.height/10));
+                    new Size(this.width,this.height),new Size(this.width/20,this.height/20));
             this.game.setDebug(true);
             game.start();
            

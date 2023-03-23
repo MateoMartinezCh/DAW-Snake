@@ -29,8 +29,8 @@ public class Coordenada implements Cloneable, Comparable<Coordenada> {
     public Coordenada() {
         this.inc=1;
     }
-
-    public Object clone() throws CloneNotSupportedException {
+    @Override
+    public Coordenada clone() {
         return new Coordenada(this.x, this.y);
     }
 
